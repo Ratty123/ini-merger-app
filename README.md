@@ -11,15 +11,14 @@ Proper handling of repeatable settings like Paths= entries
 Preservation of comments from source files
 Single executable file - no installation required
 
-
 **Building from Source**
-Prerequisites
+**Prerequisites**
 
 Node.js v14 or newer
 npm (included with Node.js)
 
 **Setup**
-Clone the repository:
+**Clone the repository:**
 git clone https://github.com/yourusername/ini-merger.git
 cd ini-merger
 
@@ -42,13 +41,12 @@ Resolve any conflicts by choosing which value to keep
 Click "Save Merged File" to save the result
 
 
-The standalone executable will be created in the dist folder.
-Technical Details
-Built with:
-
+**The standalone executable will be created in the dist folder.
+Technical Details**
+**Built with:**
 Electron framework
 JavaScript for INI parsing and merging
 electron-builder for packaging
 
-License
+**License**
 This project is licensed under the MIT License - see the LICENSE file for details.
