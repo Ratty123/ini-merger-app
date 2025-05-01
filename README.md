@@ -15,10 +15,6 @@ A simple, portable application for merging multiple engine.ini configuration fil
 - npm (included with Node.js)
 
 **Setup**
-**Clone the repository:**
-- git clone https://github.com/yourusername/ini-merger.git
-- cd ini-merger
-
 **Install dependencies:**
 - npm install
 
