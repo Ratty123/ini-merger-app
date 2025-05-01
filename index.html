@@ -1,0 +1,169 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Engine.ini Merger Tool</title>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            line-height: 1.6;
+            color: #333;
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+        h1, h2, h3 {
+            margin-top: 0;
+        }
+        .container {
+            margin-bottom: 20px;
+        }
+        .file-list {
+            background-color: #f5f5f5;
+            border-radius: 5px;
+            padding: 15px;
+            margin-bottom: 20px;
+        }
+        .file-list ul {
+            padding-left: 20px;
+        }
+        .status {
+            margin: 15px 0;
+            padding: 10px;
+            background-color: #e6f7ff;
+            border-left: 4px solid #1890ff;
+            border-radius: 0 4px 4px 0;
+        }
+        .conflict-container {
+            background-color: #fffbe6;
+            border: 1px solid #ffe58f;
+            border-radius: 5px;
+            padding: 15px;
+            margin: 20px 0;
+        }
+        .conflict-options {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 15px;
+            margin-top: 15px;
+        }
+        .conflict-option {
+            background-color: white;
+            border: 1px solid #d9d9d9;
+            border-radius: 5px;
+            padding: 10px;
+        }
+        .option-header {
+            margin-bottom: 10px;
+            font-weight: 500;
+        }
+        pre {
+            background-color: #f5f5f5;
+            padding: 10px;
+            border-radius: 5px;
+            overflow-x: auto;
+            margin: 5px 0 10px;
+            font-family: "SFMono-Regular", Consolas, "Liberation Mono", Menlo, monospace;
+            font-size: 14px;
+        }
+        .result-preview {
+            max-height: 400px;
+            overflow-y: auto;
+            border: 1px solid #d9d9d9;
+            border-radius: 5px;
+            padding: 15px;
+            margin-top: 15px;
+        }
+        .button {
+            background-color: #1890ff;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            padding: 8px 16px;
+            cursor: pointer;
+            font-size: 14px;
+            margin-right: 10px;
+        }
+        .button:hover {
+            background-color: #40a9ff;
+        }
+        .button.green {
+            background-color: #52c41a;
+        }
+        .button.green:hover {
+            background-color: #73d13d;
+        }
+        .button.gray {
+            background-color: #d9d9d9;
+            color: rgba(0, 0, 0, 0.65);
+        }
+        .button.gray:hover {
+            background-color: #f0f0f0;
+        }
+        .file-input {
+            display: none;
+        }
+        .file-label {
+            display: inline-block;
+            background-color: #1890ff;
+            color: white;
+            border-radius: 5px;
+            padding: 8px 16px;
+            cursor: pointer;
+            font-size: 14px;
+        }
+        .file-label:hover {
+            background-color: #40a9ff;
+        }
+        .hidden {
+            display: none;
+        }
+    </style>
+</head>
+<body>
+    <h1>Engine.ini Merger Tool</h1>
+    
+    <div class="container file-list">
+        <h2>Loaded Files</h2>
+        <ul id="fileList">
+            <li>No files loaded</li>
+        </ul>
+        
+        <button id="addFilesBtn" class="button">Add Files</button>
+    </div>
+    
+    <div id="status" class="status" style="display: none;"></div>
+    
+    <div id="mergeActions" style="margin-bottom: 20px;">
+        <button id="startMergeBtn" class="button green" style="display: none;">Start Merge Process</button>
+    </div>
+    
+    <div id="conflictResolver" class="conflict-container" style="display: none;">
+        <h3 id="conflictTitle">Conflict</h3>
+        
+        <div id="conflictInfo">
+            <p>Section: <span id="conflictSection"></span></p>
+            <p>Setting: <span id="conflictSetting"></span></p>
+        </div>
+        
+        <div id="conflictOptions" class="conflict-options">
+            <!-- Conflict options will be inserted here -->
+        </div>
+    </div>
+    
+    <div id="mergeResult" style="display: none;">
+        <div style="margin-bottom: 15px;">
+            <button id="downloadBtn" class="button green">Save Merged File</button>
+            <button id="resetBtn" class="button gray">Start Over</button>
+        </div>
+        
+        <h3>Merged Result Preview</h3>
+        <div class="result-preview">
+            <pre id="resultPreview"></pre>
+        </div>
+    </div>
+
+    <script src="renderer.js"></script>
+</body>
+</html>

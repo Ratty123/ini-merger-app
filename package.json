@@ -1,0 +1,29 @@
+{
+  "name": "ini-merger-app",
+  "version": "1.0.0",
+  "description": "A tool for merging engine.ini files",
+  "main": "main.js",
+  "scripts": {
+    "start": "electron .",
+    "dist": "electron-builder --win portable"
+  },
+  "build": {
+    "appId": "com.ini.merger",
+    "productName": "INI Merger",
+    "portable": {
+      "artifactName": "INIMerger.exe"
+    },
+    "win": {
+      "target": [
+        "portable"
+      ]
+    }
+  },
+  "author": "",
+  "license": "MIT",
+  "devDependencies": {
+    "electron": "^28.0.0",
+    "electron-builder": "^26.0.12",
+    "electron-packager": "^17.1.1"
+  }
+}
