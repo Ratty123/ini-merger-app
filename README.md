@@ -2,6 +2,8 @@
 
 A simple, portable application for merging multiple engine.ini configuration files into a single combined file.
 
+![image](https://github.com/user-attachments/assets/f6036509-c805-4597-8843-8be76572740d)
+
 ## Features
 * Merge multiple engine.ini files with intelligent conflict resolution
 * Proper handling of repeatable settings like `Paths=` entries
@@ -51,6 +53,7 @@ The standalone executable will be created in the `dist` folder.
 * Click "Start Merge Process"
 * Resolve any conflicts by choosing which value to keep
 * Click "Save Merged File" to save the result
+
 
 ## Technical Details
 
