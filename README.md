@@ -63,8 +63,9 @@ The standalone executable will be created in the `dist` folder.
 * electron-builder for packaging
 
 **Other:**
-* Zero network connectivity - the application never connects to the internet
-* Built-in network request blocking for added security
+* Blocks all outgoing connections - the application cannot make any internet requests
+* Only allows local file access (file://) and developer tools (devtools://)
+* Prevents the application from loading any external web content
 
 ## License
 This project is licensed under the MIT License - see the LICENSE file for details.
