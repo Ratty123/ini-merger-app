@@ -5,9 +5,10 @@ A simple, portable application for merging multiple engine.ini configuration fil
 ![image](https://github.com/user-attachments/assets/f6036509-c805-4597-8843-8be76572740d)
 
 ## Features
-* Merge multiple engine.ini files with intelligent conflict resolution
+* Merge multiple engine.ini files with "intelligent" conflict resolution
 * Proper handling of repeatable settings like `Paths=` entries
 * Preservation of comments from source files
+* Removes standalone comment blocks and unnecessary whitespace between sections (yes, I'm lazy)
 * Single executable file - no installation required
 
 ## Building from Source
@@ -54,13 +55,16 @@ The standalone executable will be created in the `dist` folder.
 * Resolve any conflicts by choosing which value to keep
 * Click "Save Merged File" to save the result
 
-
 ## Technical Details
 
 **Built with:**
 * Electron framework
 * JavaScript for INI parsing and merging
 * electron-builder for packaging
+
+**Other:**
+* Zero network connectivity - the application never connects to the internet
+* Built-in network request blocking for added security
 
 ## License
 This project is licensed under the MIT License - see the LICENSE file for details.
