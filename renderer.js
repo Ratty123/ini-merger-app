@@ -34,13 +34,13 @@ const parseINI = (content) => {
   const lines = content.split('\n');
   const result = {};
   let currentSection = null;
-  
+
   for (let line of lines) {
     line = line.trim();
-    
-    // Skip empty lines
-    if (!line) continue;
-    
+
+    // Skip empty lines and comments
+    if (!line || line.startsWith(';')) continue;
+
     // Section headers
     if (line.startsWith('[') && line.endsWith(']')) {
       currentSection = line.slice(1, -1);
@@ -49,31 +49,32 @@ const parseINI = (content) => {
       }
       continue;
     }
-    
+
     // Must have a current section
     if (currentSection === null) continue;
-    
+
     // Add line to current section
     result[currentSection].push(line);
   }
-  
+
   return result;
 };
 
 // Convert structured INI back to text
 const generateINI = (iniStructure) => {
   let output = '';
-  
+
   for (const section in iniStructure) {
     output += `[${section}]\n`;
     for (const line of iniStructure[section]) {
       output += `${line}\n`;
     }
-    output += '\n';
+    output += `\n`; // Add single newline after each section
   }
-  
-  return output;
+
+  return output.trim(); // Remove trailing blank line at the end
 };
+
 
 // Extract setting name from an INI line
 const getSettingName = (line) => {
