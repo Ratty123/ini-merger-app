@@ -1,5 +1,7 @@
 # INI Merger
 
+![INI Merger screenshot](./mainpicture.png)
+
 INI Merger is a desktop Electron utility for combining Unreal-style INI files into a single output while keeping file precedence explicit. It includes grouped conflict review, duplicate review, preserved comments around settings, and a live merged preview in a VS Code-like dark UI.
 
 ## Highlights
