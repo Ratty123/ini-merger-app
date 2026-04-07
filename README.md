@@ -1,71 +1,77 @@
-# INI Merger Tool
+# INI Merger
 
-A simple, portable application for merging multiple engine.ini configuration files into a single combined file.
+INI Merger is a desktop Electron utility for combining Unreal-style INI files into a single output while keeping file precedence explicit. It includes grouped conflict review, duplicate review, preserved comments around settings, and a live merged preview in a VS Code-like dark UI.
 
-![image](https://github.com/user-attachments/assets/f6036509-c805-4597-8843-8be76572740d)
+## Highlights
 
-## Features
-* Merge multiple engine.ini files with "intelligent" conflict resolution
-* Proper handling of repeatable settings like `Paths=` entries
-* Preservation of comments from source files
-* Removes standalone comment blocks and unnecessary whitespace between sections (yes, I'm lazy)
-* Single executable file - no installation required
+- Secure Electron setup with `contextIsolation`, a preload bridge, and blocked external navigation
+- Drag-to-reorder file stack so precedence is visible and editable
+- N-way scalar conflict review with sequential modal walkthrough
+- Duplicate detection with keep/remove decisions before export
+- Comment and blank-line preservation around parsed settings
+- Live merged preview that updates as review choices change
+- Portable Windows build output through `electron-builder`
 
-## Building from Source
+## Workflow
+
+1. Add one or more INI files.
+2. Reorder files so lower files override higher ones.
+3. Click `Build Merge`.
+4. Review conflicts if multiple scalar values exist.
+5. Review duplicates if matching entries were collapsed.
+6. Save the merged output.
+
+## Project Structure
+
+- `main.js`: Electron window lifecycle, IPC handlers, navigation guards
+- `preload.js`: minimal renderer API bridge
+- `index.html`: app shell and modal structure
+- `styles.css`: VS Code-inspired dark theme and responsive layout
+- `src/core/merge-engine.js`: parser, merge model, serialization, conflict and duplicate selection
+- `src/renderer/app.js`: renderer state, UI rendering, modal flows
+- `test/merge-engine.test.js`: merge engine coverage
+- `build/icon.png`: source icon for Windows packaging
+- `CHANGELOG.md`: release history
+
+## Development
 
 ### Prerequisites
-* Node.js v14 or newer
-* npm (included with Node.js)
 
-### Required Files
-You need these specific files in your project directory:
-* `package.json` - Contains project configuration
-* `main.js` - The main Electron process
-* `index.html` - The application user interface
-* `renderer.js` - UI logic and merging functionality
+- Node.js 18 or newer
+- npm
 
-### Setup
+### Install
 
-**1. Create a project directory:**
-* mkdir ini-merger-app
-* cd ini-merger-app
+```bash
+npm install
+```
 
-**2. Create the four required files with correct content:**
-* Copy the code for each file as provided in the instructions
+### Run
 
-**3. Install dependencies:**
-* npm install
-  
-**4. Install electron-builder:**
-* npm install --save-dev electron-builder
-  
-**5. Run in development mode:**
-* npm start
-  
-**6. Build portable executable:**
-* npm run dist
+```bash
+npm start
+```
 
-The standalone executable will be created in the `dist` folder.
+### Test
 
-## Usage
+```bash
+npm test
+```
 
-**Launch INIMerger.exe**
-* Click "Add Files" to select your engine.ini files
-* Click "Start Merge Process"
-* Resolve any conflicts by choosing which value to keep
-* Click "Save Merged File" to save the result
+### Build Portable EXE
 
-## Technical Details
+```bash
+npm run dist
+```
 
-**Built with:**
-* Electron framework
-* JavaScript for INI parsing and merging
-* electron-builder for packaging
+The portable executable is written to `dist/INIMerger.exe`.
 
-**Other:**
-* Blocks all outgoing connections - the application cannot make any internet requests
-* Only allows local file access (file://) and developer tools (devtools://)
-* Prevents the application from loading any external web content
+## Notes
+
+- The renderer only gets file open/save capabilities through `preload.js`.
+- External web navigation and new windows are blocked by the main process.
+- Repeatable Unreal-style entries are handled separately from scalar conflicts.
 
 ## License
-This project is licensed under the MIT License - see the LICENSE file for details.
+
+This project is licensed under the MIT License. See `LICENSE`.

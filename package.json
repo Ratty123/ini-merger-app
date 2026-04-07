@@ -1,15 +1,24 @@
 {
   "name": "ini-merger-app",
-  "version": "1.0.0",
-  "description": "A tool for merging engine.ini files",
+  "version": "2.0.0",
+  "description": "A secure desktop tool for merging Unreal-style INI files with conflict and duplicate review, live preview, and explicit file precedence.",
   "main": "main.js",
   "scripts": {
     "start": "electron .",
-    "dist": "electron-builder --win portable"
+    "test": "node --test",
+    "dist": "npm test && electron-builder --win portable"
   },
   "build": {
     "appId": "com.ini.merger",
     "productName": "INI Merger",
+    "files": [
+      "main.js",
+      "preload.js",
+      "index.html",
+      "styles.css",
+      "src/**/*",
+      "LICENSE"
+    ],
     "portable": {
       "artifactName": "INIMerger.exe"
     },
@@ -19,11 +28,17 @@
       ]
     }
   },
-  "author": "",
+  "keywords": [
+    "electron",
+    "ini",
+    "unreal-engine",
+    "merge-tool",
+    "config-editor"
+  ],
+  "author": "Ratty123",
   "license": "MIT",
   "devDependencies": {
-    "electron": "^28.0.0",
-    "electron-builder": "^26.0.12",
-    "electron-packager": "^17.1.1"
+    "electron": "^41.1.1",
+    "electron-builder": "^26.0.12"
   }
 }

@@ -1,169 +1,135 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Engine.ini Merger Tool</title>
-    <style>
-        body {
-            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
-            line-height: 1.6;
-            color: #333;
-            max-width: 1200px;
-            margin: 0 auto;
-            padding: 20px;
-        }
-        h1, h2, h3 {
-            margin-top: 0;
-        }
-        .container {
-            margin-bottom: 20px;
-        }
-        .file-list {
-            background-color: #f5f5f5;
-            border-radius: 5px;
-            padding: 15px;
-            margin-bottom: 20px;
-        }
-        .file-list ul {
-            padding-left: 20px;
-        }
-        .status {
-            margin: 15px 0;
-            padding: 10px;
-            background-color: #e6f7ff;
-            border-left: 4px solid #1890ff;
-            border-radius: 0 4px 4px 0;
-        }
-        .conflict-container {
-            background-color: #fffbe6;
-            border: 1px solid #ffe58f;
-            border-radius: 5px;
-            padding: 15px;
-            margin: 20px 0;
-        }
-        .conflict-options {
-            display: grid;
-            grid-template-columns: 1fr 1fr;
-            gap: 15px;
-            margin-top: 15px;
-        }
-        .conflict-option {
-            background-color: white;
-            border: 1px solid #d9d9d9;
-            border-radius: 5px;
-            padding: 10px;
-        }
-        .option-header {
-            margin-bottom: 10px;
-            font-weight: 500;
-        }
-        pre {
-            background-color: #f5f5f5;
-            padding: 10px;
-            border-radius: 5px;
-            overflow-x: auto;
-            margin: 5px 0 10px;
-            font-family: "SFMono-Regular", Consolas, "Liberation Mono", Menlo, monospace;
-            font-size: 14px;
-        }
-        .result-preview {
-            max-height: 400px;
-            overflow-y: auto;
-            border: 1px solid #d9d9d9;
-            border-radius: 5px;
-            padding: 15px;
-            margin-top: 15px;
-        }
-        .button {
-            background-color: #1890ff;
-            color: white;
-            border: none;
-            border-radius: 5px;
-            padding: 8px 16px;
-            cursor: pointer;
-            font-size: 14px;
-            margin-right: 10px;
-        }
-        .button:hover {
-            background-color: #40a9ff;
-        }
-        .button.green {
-            background-color: #52c41a;
-        }
-        .button.green:hover {
-            background-color: #73d13d;
-        }
-        .button.gray {
-            background-color: #d9d9d9;
-            color: rgba(0, 0, 0, 0.65);
-        }
-        .button.gray:hover {
-            background-color: #f0f0f0;
-        }
-        .file-input {
-            display: none;
-        }
-        .file-label {
-            display: inline-block;
-            background-color: #1890ff;
-            color: white;
-            border-radius: 5px;
-            padding: 8px 16px;
-            cursor: pointer;
-            font-size: 14px;
-        }
-        .file-label:hover {
-            background-color: #40a9ff;
-        }
-        .hidden {
-            display: none;
-        }
-    </style>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; style-src 'self'; img-src 'self' data:; connect-src 'none'; object-src 'none'; frame-src 'none'; base-uri 'none'; form-action 'none'">
+  <title>INI Merger</title>
+  <link rel="stylesheet" href="styles.css">
 </head>
 <body>
-    <h1>Engine.ini Merger Tool</h1>
-    
-    <div class="container file-list">
-        <h2>Loaded Files</h2>
-        <ul id="fileList">
-            <li>No files loaded</li>
-        </ul>
-        
-        <button id="addFilesBtn" class="button">Add Files</button>
-    </div>
-    
-    <div id="status" class="status" style="display: none;"></div>
-    
-    <div id="mergeActions" style="margin-bottom: 20px;">
-        <button id="startMergeBtn" class="button green" style="display: none;">Start Merge Process</button>
-    </div>
-    
-    <div id="conflictResolver" class="conflict-container" style="display: none;">
-        <h3 id="conflictTitle">Conflict</h3>
-        
-        <div id="conflictInfo">
-            <p>Section: <span id="conflictSection"></span></p>
-            <p>Setting: <span id="conflictSetting"></span></p>
+  <div class="app-shell">
+    <header class="topbar">
+      <div class="brand">
+        <div class="brand-icon" aria-hidden="true">
+          <span class="brand-icon__page"></span>
+          <span class="brand-icon__line brand-icon__line--1"></span>
+          <span class="brand-icon__line brand-icon__line--2"></span>
+          <span class="brand-icon__line brand-icon__line--3"></span>
         </div>
-        
-        <div id="conflictOptions" class="conflict-options">
-            <!-- Conflict options will be inserted here -->
+        <div class="brand-copy">
+          <h1>INI Merger</h1>
+          <p>Merge multiple config files. Files lower in the list override files above them.</p>
         </div>
-    </div>
-    
-    <div id="mergeResult" style="display: none;">
-        <div style="margin-bottom: 15px;">
-            <button id="downloadBtn" class="button green">Save Merged File</button>
-            <button id="resetBtn" class="button gray">Start Over</button>
-        </div>
-        
-        <h3>Merged Result Preview</h3>
-        <div class="result-preview">
-            <pre id="resultPreview"></pre>
-        </div>
-    </div>
+      </div>
 
-    <script src="renderer.js"></script>
+      <div class="action-bar">
+        <button id="addFilesBtn" class="button button-secondary">Add Files</button>
+        <button id="mergeBtn" class="button button-primary">Build Merge</button>
+        <button id="saveBtn" class="button button-success">Save Output</button>
+        <button id="resetBtn" class="button button-ghost">Reset</button>
+      </div>
+    </header>
+
+    <section class="status-strip">
+      <div class="status-main">
+        <span id="statusBadge" class="status-badge" data-tone="idle">No Files</span>
+        <p id="statusMessage">Add INI files to begin. The last file in the list has the highest priority.</p>
+      </div>
+      <div class="status-side">
+        <button id="reviewDuplicatesBtn" class="button button-secondary status-action-button">Review Duplicates</button>
+        <div id="summaryBar" class="summary-bar"></div>
+      </div>
+    </section>
+
+    <main class="workspace">
+      <aside class="panel sidebar-panel">
+        <div class="panel-header">
+          <div>
+            <h2>Files</h2>
+            <p class="panel-note">Drag to reorder. Bottom file wins.</p>
+          </div>
+        </div>
+        <div id="fileList" class="file-list"></div>
+      </aside>
+
+      <section class="panel conflicts-panel">
+        <div class="panel-header">
+          <div>
+            <h2>Conflicts</h2>
+            <p class="panel-note">Review each conflict and choose the value to keep.</p>
+          </div>
+          <div class="panel-header-side">
+            <button id="reviewConflictBtn" class="button button-secondary panel-action-button">Review Selected</button>
+            <p id="conflictMeta" class="panel-meta">No merge built.</p>
+          </div>
+        </div>
+        <div id="conflictList" class="conflict-list"></div>
+      </section>
+
+      <section class="panel preview-panel">
+        <div class="panel-header">
+          <div>
+            <h2>Live Preview</h2>
+            <p class="panel-note">Current merged output based on the active selections.</p>
+          </div>
+          <p id="previewMeta" class="panel-meta">No merged output yet.</p>
+        </div>
+        <pre id="previewOutput" class="preview-output"></pre>
+      </section>
+    </main>
+  </div>
+
+  <div id="conflictModal" class="modal-shell" aria-hidden="true">
+    <div id="conflictModalBackdrop" class="modal-backdrop"></div>
+    <section class="modal-window" role="dialog" aria-modal="true" aria-labelledby="conflictModalTitle">
+      <div class="modal-header">
+        <div>
+          <p class="modal-kicker">Conflict Review</p>
+          <h2 id="conflictModalTitle" class="modal-title">Conflict</h2>
+          <p id="conflictModalMeta" class="modal-meta">Choose which value should be used in the merged output.</p>
+        </div>
+        <button id="closeConflictModalBtn" class="mini-button">Close</button>
+      </div>
+
+      <div class="modal-note">
+        If you do nothing, the current selection stays in the merged result.
+      </div>
+
+      <div id="conflictModalOptions" class="modal-options"></div>
+
+      <div class="modal-footer">
+        <button id="keepCurrentConflictBtn" class="button button-secondary">Keep Current Value</button>
+      </div>
+    </section>
+  </div>
+
+  <div id="duplicateModal" class="modal-shell" aria-hidden="true">
+    <div id="duplicateModalBackdrop" class="modal-backdrop"></div>
+    <section class="modal-window" role="dialog" aria-modal="true" aria-labelledby="duplicateModalTitle">
+      <div class="modal-header">
+        <div>
+          <p class="modal-kicker">Duplicate Review</p>
+          <h2 id="duplicateModalTitle" class="modal-title">Duplicate</h2>
+          <p id="duplicateModalMeta" class="modal-meta">Choose whether duplicate entries should be collapsed or preserved.</p>
+        </div>
+        <button id="closeDuplicateModalBtn" class="mini-button">Close</button>
+      </div>
+
+      <div class="modal-note">
+        Removing duplicates keeps a single copy in the merged file. Keeping duplicates preserves every matching copy.
+      </div>
+
+      <div id="duplicateModalOptions" class="modal-options"></div>
+
+      <div class="modal-footer modal-footer-split">
+        <button id="removeDuplicateBtn" class="button button-secondary">Remove Duplicates</button>
+        <button id="keepDuplicateBtn" class="button button-primary">Keep All Copies</button>
+      </div>
+    </section>
+  </div>
+
+  <script src="src/core/merge-engine.js"></script>
+  <script src="src/renderer/app.js"></script>
 </body>
 </html>

@@ -1,88 +1,136 @@
-const { app, BrowserWindow, ipcMain, dialog, session } = require('electron');
+const { app, BrowserWindow, dialog, ipcMain, session } = require('electron');
+const fs = require('fs/promises');
 const path = require('path');
-const fs = require('fs');
 
-let mainWindow;
+const WINDOW_BOUNDS = {
+  width: 1440,
+  height: 960,
+  minWidth: 1120,
+  minHeight: 760
+};
+
+const ALLOWED_PROTOCOLS = new Set(['file:', 'devtools:', 'data:']);
+
+let mainWindow = null;
+
+function isAllowedUrl(urlString) {
+  try {
+    const parsed = new URL(urlString);
+    return ALLOWED_PROTOCOLS.has(parsed.protocol);
+  } catch (error) {
+    return false;
+  }
+}
+
+function registerSessionGuards() {
+  session.defaultSession.webRequest.onBeforeRequest((details, callback) => {
+    callback({ cancel: !isAllowedUrl(details.url) });
+  });
+}
 
 function createWindow() {
   mainWindow = new BrowserWindow({
-    width: 1200,
-    height: 800,
+    ...WINDOW_BOUNDS,
+    show: false,
+    backgroundColor: '#1e1e1e',
+    autoHideMenuBar: true,
     webPreferences: {
-      nodeIntegration: true,
-      contextIsolation: false,
-      enableRemoteModule: true
+      preload: path.join(__dirname, 'preload.js'),
+      contextIsolation: true,
+      nodeIntegration: false,
+      devTools: true
     }
   });
 
-  mainWindow.loadFile('index.html');
+  mainWindow.removeMenu();
+  mainWindow.loadFile(path.join(__dirname, 'index.html'));
+  mainWindow.once('ready-to-show', () => {
+    mainWindow.show();
+  });
 
-  // Prevent all external internet requests
-  session.defaultSession.webRequest.onBeforeRequest((details, callback) => {
-    const url = details.url;
-    // Allow only file:// protocol and local devtools resources
-    if (url.startsWith('file://') || url.startsWith('devtools://')) {
-      callback({ cancel: false });
-    } else {
-      callback({ cancel: true });
+  mainWindow.webContents.setWindowOpenHandler(() => ({ action: 'deny' }));
+  mainWindow.webContents.on('will-navigate', (event, url) => {
+    if (!isAllowedUrl(url)) {
+      event.preventDefault();
     }
   });
 
-  mainWindow.on('closed', function () {
+  mainWindow.on('closed', () => {
     mainWindow = null;
   });
 }
 
-app.whenReady().then(createWindow);
+async function readIniFiles(filePaths) {
+  const files = [];
 
-app.on('window-all-closed', function () {
-  if (process.platform !== 'darwin') app.quit();
+  for (const filePath of filePaths) {
+    const content = await fs.readFile(filePath, 'utf8');
+    files.push({
+      id: filePath,
+      path: filePath,
+      name: path.basename(filePath),
+      content
+    });
+  }
+
+  return files;
+}
+
+app.whenReady().then(() => {
+  registerSessionGuards();
+  createWindow();
+
+  app.on('activate', () => {
+    if (BrowserWindow.getAllWindows().length === 0) {
+      createWindow();
+    }
+  });
 });
 
-app.on('activate', function () {
-  if (mainWindow === null) createWindow();
+app.on('window-all-closed', () => {
+  if (process.platform !== 'darwin') {
+    app.quit();
+  }
 });
 
-ipcMain.handle('open-files', async () => {
+ipcMain.handle('files:open', async () => {
   const result = await dialog.showOpenDialog(mainWindow, {
     properties: ['openFile', 'multiSelections'],
-    filters: [{ name: 'INI Files', extensions: ['ini', 'txt'] }]
+    filters: [
+      { name: 'INI Files', extensions: ['ini', 'cfg', 'txt'] }
+    ]
   });
 
-  if (!result.canceled && result.filePaths.length > 0) {
-    const fileContents = {};
-    for (const filePath of result.filePaths) {
-      try {
-        const content = fs.readFileSync(filePath, 'utf8');
-        fileContents[filePath] = {
-          content,
-          name: path.basename(filePath)
-        };
-      } catch (error) {
-        console.error(`Error reading file ${filePath}:`, error);
-      }
-    }
-    return fileContents;
+  if (result.canceled || result.filePaths.length === 0) {
+    return [];
   }
-  return {};
+
+  try {
+    return await readIniFiles(result.filePaths);
+  } catch (error) {
+    return {
+      error: error.message
+    };
+  }
 });
 
-ipcMain.handle('save-file', async (event, content) => {
+ipcMain.handle('files:save', async (event, content) => {
   const result = await dialog.showSaveDialog(mainWindow, {
-    title: 'Save Merged INI File',
+    title: 'Save merged INI file',
     defaultPath: 'merged_engine.ini',
-    filters: [{ name: 'INI Files', extensions: ['ini'] }]
+    filters: [
+      { name: 'INI Files', extensions: ['ini'] }
+    ]
   });
 
-  if (!result.canceled && result.filePath) {
-    try {
-      fs.writeFileSync(result.filePath, content, 'utf8');
-      return { success: true, path: result.filePath };
-    } catch (error) {
-      console.error('Error saving file:', error);
-      return { success: false, error: error.message };
-    }
+  if (result.canceled || !result.filePath) {
+    return { success: false, canceled: true };
   }
 
-  return { success: false };
+  try {
+    await fs.writeFile(result.filePath, content, 'utf8');
+    return { success: true, path: result.filePath };
+  } catch (error) {
+    return { success: false, error: error.message };
+  }
 });
