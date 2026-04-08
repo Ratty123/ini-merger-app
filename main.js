@@ -10,6 +10,7 @@ const WINDOW_BOUNDS = {
 };
 
 const ALLOWED_PROTOCOLS = new Set(['file:', 'devtools:', 'data:']);
+const CONFIG_FILENAME = 'inimerger.cfg';
 
 let mainWindow = null;
 
@@ -33,6 +34,7 @@ function createWindow() {
     ...WINDOW_BOUNDS,
     show: false,
     backgroundColor: '#1e1e1e',
+    icon: path.join(__dirname, 'build', 'icon.png'),
     autoHideMenuBar: true,
     webPreferences: {
       preload: path.join(__dirname, 'preload.js'),
@@ -76,6 +78,82 @@ async function readIniFiles(filePaths) {
   return files;
 }
 
+async function readIniFilesWithMissing(filePaths) {
+  const files = [];
+  const missingPaths = [];
+
+  for (const filePath of filePaths) {
+    try {
+      const content = await fs.readFile(filePath, 'utf8');
+      files.push({
+        id: filePath,
+        path: filePath,
+        name: path.basename(filePath),
+        content
+      });
+    } catch (error) {
+      missingPaths.push(filePath);
+    }
+  }
+
+  return {
+    files,
+    missingPaths
+  };
+}
+
+function getConfigPath() {
+  if (app.isPackaged) {
+    return path.join(path.dirname(process.execPath), CONFIG_FILENAME);
+  }
+
+  return path.join(app.getAppPath(), CONFIG_FILENAME);
+}
+
+async function loadAppConfig() {
+  try {
+    const configPath = getConfigPath();
+    const raw = await fs.readFile(configPath, 'utf8');
+    return {
+      success: true,
+      path: configPath,
+      config: JSON.parse(raw)
+    };
+  } catch (error) {
+    if (error.code === 'ENOENT') {
+      return {
+        success: true,
+        path: getConfigPath(),
+        config: null
+      };
+    }
+
+    return {
+      success: false,
+      error: error.message,
+      path: getConfigPath()
+    };
+  }
+}
+
+async function saveAppConfig(config) {
+  try {
+    const configPath = getConfigPath();
+    const serialized = JSON.stringify(config ?? {}, null, 2);
+    await fs.writeFile(configPath, serialized, 'utf8');
+    return {
+      success: true,
+      path: configPath
+    };
+  } catch (error) {
+    return {
+      success: false,
+      error: error.message,
+      path: getConfigPath()
+    };
+  }
+}
+
 app.whenReady().then(() => {
   registerSessionGuards();
   createWindow();
@@ -114,6 +192,20 @@ ipcMain.handle('files:open', async () => {
   }
 });
 
+ipcMain.handle('files:loadPaths', async (event, filePaths) => {
+  if (!Array.isArray(filePaths) || filePaths.length === 0) {
+    return { files: [], missingPaths: [] };
+  }
+
+  try {
+    return await readIniFilesWithMissing(filePaths);
+  } catch (error) {
+    return {
+      error: error.message
+    };
+  }
+});
+
 ipcMain.handle('files:save', async (event, content) => {
   const result = await dialog.showSaveDialog(mainWindow, {
     title: 'Save merged INI file',
@@ -133,4 +225,12 @@ ipcMain.handle('files:save', async (event, content) => {
   } catch (error) {
     return { success: false, error: error.message };
   }
+});
+
+ipcMain.handle('config:load', async () => {
+  return loadAppConfig();
+});
+
+ipcMain.handle('config:save', async (event, config) => {
+  return saveAppConfig(config);
 });

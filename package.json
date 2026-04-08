@@ -1,7 +1,7 @@
 {
   "name": "ini-merger-app",
-  "version": "2.0.0",
-  "description": "A secure desktop tool for merging Unreal-style INI files with conflict and duplicate review, live preview, and explicit file precedence.",
+  "version": "2.4.0",
+  "description": "A secure desktop tool for merging Unreal-style INI files with cleanup controls, structural validation, bulk duplicate actions, autosaved sessions, and an editor-style live preview.",
   "main": "main.js",
   "scripts": {
     "start": "electron .",
@@ -16,13 +16,16 @@
       "preload.js",
       "index.html",
       "styles.css",
+      "build/**/*",
       "src/**/*",
       "LICENSE"
     ],
+    "icon": "icon.ico",
     "portable": {
-      "artifactName": "INIMerger.exe"
+      "artifactName": "INIMerger-${version}.exe"
     },
     "win": {
+      "icon": "icon.ico",
       "target": [
         "portable"
       ]

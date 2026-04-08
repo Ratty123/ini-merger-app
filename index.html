@@ -37,8 +37,79 @@
         <p id="statusMessage">Add INI files to begin. The last file in the list has the highest priority.</p>
       </div>
       <div class="status-side">
+        <p id="autosaveMeta" class="status-meta">Autosave: waiting</p>
+        <button id="reviewStructureBtn" class="button button-secondary status-action-button">Review Structure</button>
         <button id="reviewDuplicatesBtn" class="button button-secondary status-action-button">Review Duplicates</button>
         <div id="summaryBar" class="summary-bar"></div>
+      </div>
+    </section>
+
+    <section class="tools-strip">
+      <div class="tools-group tools-group--search">
+        <label class="tool-label" for="searchInput">Search</label>
+        <input id="searchInput" class="tool-input" type="search" placeholder="Filter conflicts, sections, and preview text">
+      </div>
+
+      <div class="tools-group">
+        <label class="tool-label" for="rulePresetSelect">Rules</label>
+        <select id="rulePresetSelect" class="tool-select"></select>
+      </div>
+
+      <div class="tools-group">
+        <label class="tool-label" for="cleanupModeSelect">Cleanup</label>
+        <select id="cleanupModeSelect" class="tool-select">
+          <option value="preserve">Preserve comments</option>
+          <option value="smart">Smart cleanup</option>
+          <option value="minimal">Minimal output</option>
+        </select>
+      </div>
+
+      <div class="tools-group">
+        <label class="tool-label" for="structureModeSelect">Structure</label>
+        <select id="structureModeSelect" class="tool-select">
+          <option value="off">Off</option>
+          <option value="warn">Warn only</option>
+          <option value="clean">Clean loose lines</option>
+        </select>
+      </div>
+
+      <div class="tools-group">
+        <label class="tool-label">Sections</label>
+        <button id="sectionFilterBtn" class="button button-secondary tool-button">All Sections</button>
+      </div>
+
+      <div class="tools-group">
+        <label class="tool-label">Profiles</label>
+        <button id="profilesBtn" class="button button-secondary tool-button">Manage Profiles</button>
+      </div>
+
+      <div class="tools-group tools-group--preview">
+        <label class="tool-label">Preview Mode</label>
+        <div class="segmented-control">
+          <button id="previewMergedBtn" class="segmented-control__button is-active" type="button">Merged</button>
+          <button id="previewDiffBtn" class="segmented-control__button" type="button">Diff</button>
+        </div>
+      </div>
+
+      <div class="tools-group tools-group--editor">
+        <label class="tool-label">Editor</label>
+        <div class="editor-controls">
+          <select id="previewFontSizeSelect" class="tool-select tool-select--compact" aria-label="Preview font size">
+            <option value="11">11 px</option>
+            <option value="12">12 px</option>
+            <option value="13">13 px</option>
+            <option value="14">14 px</option>
+            <option value="15">15 px</option>
+            <option value="16">16 px</option>
+          </select>
+          <select id="previewLineHeightSelect" class="tool-select tool-select--compact" aria-label="Preview line spacing">
+            <option value="1.2">Tight</option>
+            <option value="1.35">Default</option>
+            <option value="1.5">Relaxed</option>
+            <option value="1.7">Loose</option>
+          </select>
+          <button id="toggleLineNumbersBtn" class="button button-secondary tool-button tool-button--compact" type="button">Line Numbers</button>
+        </div>
       </div>
     </section>
 
@@ -64,6 +135,13 @@
             <p id="conflictMeta" class="panel-meta">No merge built.</p>
           </div>
         </div>
+
+        <div class="panel-toolbar">
+          <button id="useDefaultsBtn" class="button button-secondary panel-tool-button">Use Preset Defaults</button>
+          <button id="resetReviewBtn" class="button button-secondary panel-tool-button">Reset Review Choices</button>
+          <button id="applySectionSourceBtn" class="button button-secondary panel-tool-button">Use Selected File For Section</button>
+        </div>
+
         <div id="conflictList" class="conflict-list"></div>
       </section>
 
@@ -71,11 +149,11 @@
         <div class="panel-header">
           <div>
             <h2>Live Preview</h2>
-            <p class="panel-note">Current merged output based on the active selections.</p>
+            <p id="previewNote" class="panel-note">Current merged output based on the active selections.</p>
           </div>
           <p id="previewMeta" class="panel-meta">No merged output yet.</p>
         </div>
-        <pre id="previewOutput" class="preview-output"></pre>
+        <div id="previewOutput" class="preview-output" role="region" aria-label="Merged output preview"></div>
       </section>
     </main>
   </div>
@@ -93,12 +171,13 @@
       </div>
 
       <div class="modal-note">
-        If you do nothing, the current selection stays in the merged result.
+        If you do nothing, the current selection stays in the merged result. You can also push the selected file across the whole section.
       </div>
 
       <div id="conflictModalOptions" class="modal-options"></div>
 
-      <div class="modal-footer">
+      <div class="modal-footer modal-footer-split">
+        <button id="applyConflictToSectionBtn" class="button button-secondary">Use Selected File For Section</button>
         <button id="keepCurrentConflictBtn" class="button button-secondary">Keep Current Value</button>
       </div>
     </section>
@@ -122,14 +201,100 @@
 
       <div id="duplicateModalOptions" class="modal-options"></div>
 
-      <div class="modal-footer modal-footer-split">
+      <div class="modal-footer modal-footer-wrap">
+        <button id="removeAllDuplicatesBtn" class="button button-secondary">Remove All Duplicates</button>
+        <button id="keepAllDuplicatesBtn" class="button button-secondary">Keep All Duplicates</button>
         <button id="removeDuplicateBtn" class="button button-secondary">Remove Duplicates</button>
         <button id="keepDuplicateBtn" class="button button-primary">Keep All Copies</button>
       </div>
     </section>
   </div>
 
+  <div id="sectionsModal" class="modal-shell" aria-hidden="true">
+    <div id="sectionsModalBackdrop" class="modal-backdrop"></div>
+    <section class="modal-window modal-window--narrow" role="dialog" aria-modal="true" aria-labelledby="sectionsModalTitle">
+      <div class="modal-header">
+        <div>
+          <p class="modal-kicker">Section Filter</p>
+          <h2 id="sectionsModalTitle" class="modal-title">Included Sections</h2>
+          <p id="sectionsModalMeta" class="modal-meta">Choose which sections should be part of the merge.</p>
+        </div>
+        <button id="closeSectionsModalBtn" class="mini-button">Close</button>
+      </div>
+
+      <div class="modal-note">
+        Unchecked sections are excluded from conflicts, duplicates, preview, and saved output.
+      </div>
+
+      <div class="modal-tools">
+        <input id="sectionSearchInput" class="tool-input" type="search" placeholder="Search sections">
+        <div class="modal-tools__actions">
+          <button id="selectAllSectionsBtn" class="mini-button">All</button>
+          <button id="clearSectionsBtn" class="mini-button">None</button>
+        </div>
+      </div>
+
+      <div id="sectionList" class="section-list"></div>
+
+      <div class="modal-footer">
+        <button id="applySectionsBtn" class="button button-primary">Apply Section Filter</button>
+      </div>
+    </section>
+  </div>
+
+  <div id="profilesModal" class="modal-shell" aria-hidden="true">
+    <div id="profilesModalBackdrop" class="modal-backdrop"></div>
+    <section class="modal-window modal-window--narrow" role="dialog" aria-modal="true" aria-labelledby="profilesModalTitle">
+      <div class="modal-header">
+        <div>
+          <p class="modal-kicker">Saved Sessions</p>
+          <h2 id="profilesModalTitle" class="modal-title">Profiles</h2>
+          <p id="profilesModalMeta" class="modal-meta">Save the current workspace and reload it later.</p>
+        </div>
+        <button id="closeProfilesModalBtn" class="mini-button">Close</button>
+      </div>
+
+      <div class="modal-note">
+        Profiles store the loaded files, file order, active rules, section filter, and review choices on this machine.
+      </div>
+
+      <div class="profile-editor">
+        <input id="profileNameInput" class="tool-input" type="text" placeholder="Profile name">
+        <button id="saveProfileBtn" class="button button-primary">Save Current Session</button>
+      </div>
+
+      <div id="profileList" class="profile-list"></div>
+    </section>
+  </div>
+
+  <div id="structureModal" class="modal-shell" aria-hidden="true">
+    <div id="structureModalBackdrop" class="modal-backdrop"></div>
+    <section class="modal-window" role="dialog" aria-modal="true" aria-labelledby="structureModalTitle">
+      <div class="modal-header">
+        <div>
+          <p class="modal-kicker">Structural Cleanup</p>
+          <h2 id="structureModalTitle" class="modal-title">Structure Review</h2>
+          <p id="structureModalMeta" class="modal-meta">Review structural issues and Unreal section hints.</p>
+        </div>
+        <button id="closeStructureModalBtn" class="mini-button">Close</button>
+      </div>
+
+      <div class="modal-note">
+        This check uses a generic Unreal Engine schema. It will safely remove loose non-INI lines when structure cleanup is enabled, but it keeps custom or game-specific sections unless they are clearly junk.
+      </div>
+
+      <div id="structureList" class="structure-list"></div>
+
+      <div class="modal-footer modal-footer-wrap">
+        <button id="autoCleanStructureBtn" class="button button-secondary">Auto Clean Safe Issues</button>
+        <button id="categorizeConsoleVariablesBtn" class="button button-secondary">Categorize ConsoleVariables</button>
+        <button id="resetStructureToolsBtn" class="button button-secondary">Reset Structure Tools</button>
+      </div>
+    </section>
+  </div>
+
   <script src="src/core/merge-engine.js"></script>
+  <script src="src/core/console-variable-tools.js"></script>
   <script src="src/renderer/app.js"></script>
 </body>
 </html>

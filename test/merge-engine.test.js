@@ -125,3 +125,133 @@ test('duplicate groups can be reviewed and kept in the rendered output', () => {
   assert.equal((rendered.match(/Value=1/g) || []).length, 2);
   assert.equal((rendered.match(/Paths=Foo/g) || []).length, 2);
 });
+
+test('createMergeModel can exclude sections from the merge output', () => {
+  const model = createMergeModel(
+    [
+      {
+        id: 'a',
+        name: 'base.ini',
+        path: 'C:\\base.ini',
+        content: '[Core]\nValue=1\n\n[Debug]\nr.Debug=1\n'
+      },
+      {
+        id: 'b',
+        name: 'override.ini',
+        path: 'C:\\override.ini',
+        content: '[Core]\nValue=2\n\n[Debug]\nr.Debug=0\n'
+      }
+    ],
+    {
+      excludedSections: ['Debug']
+    }
+  );
+
+  const rendered = renderMergedContent(model);
+  assert.equal(model.summary.sectionCount, 1);
+  assert.match(rendered, /\[Core\]/);
+  assert.doesNotMatch(rendered, /\[Debug\]/);
+});
+
+test('createMergeModel supports lowest-priority defaults for conflicts', () => {
+  const model = createMergeModel(
+    [
+      {
+        id: 'a',
+        name: 'base.ini',
+        path: 'C:\\base.ini',
+        content: '[Core]\nValue=1\n'
+      },
+      {
+        id: 'b',
+        name: 'override.ini',
+        path: 'C:\\override.ini',
+        content: '[Core]\nValue=2\n'
+      }
+    ],
+    {
+      defaultConflictStrategy: 'lowest'
+    }
+  );
+
+  assert.equal(model.conflicts[0].defaultOptionId, model.conflicts[0].selectedOptionId);
+  assert.match(renderMergedContent(model), /Value=1/);
+});
+
+test('createMergeModel supports keeping duplicates by default', () => {
+  const model = createMergeModel(
+    [
+      {
+        id: 'a',
+        name: 'base.ini',
+        path: 'C:\\base.ini',
+        content: '[Core]\nValue=1\n'
+      },
+      {
+        id: 'b',
+        name: 'override.ini',
+        path: 'C:\\override.ini',
+        content: '[Core]\nValue=1\n'
+      }
+    ],
+    {
+      defaultDuplicateStrategy: 'keep'
+    }
+  );
+
+  assert.equal(model.duplicates[0].defaultKeepDuplicates, true);
+  assert.equal(model.duplicates[0].keepDuplicates, true);
+  assert.equal((renderMergedContent(model).match(/Value=1/g) || []).length, 2);
+});
+
+test('smart cleanup removes standalone comments and extra blank lines', () => {
+  const model = createMergeModel([
+    {
+      id: 'a',
+      name: 'base.ini',
+      path: 'C:\\base.ini',
+      content: '; banner\n\n[Core]\n; section comment\nValue=1 ; keep note\n\n[Extra]\n; another comment\nFlag=true\n'
+    }
+  ]);
+
+  const rendered = renderMergedContent(model, { cleanupMode: 'smart' });
+
+  assert.doesNotMatch(rendered, /banner/);
+  assert.doesNotMatch(rendered, /section comment/);
+  assert.match(rendered, /Value=1 ; keep note/);
+  assert.doesNotMatch(rendered, /\r\n\r\n\[Extra\]/);
+});
+
+test('minimal cleanup strips inline comments from retained settings', () => {
+  const model = createMergeModel([
+    {
+      id: 'a',
+      name: 'base.ini',
+      path: 'C:\\base.ini',
+      content: '[Core]\nValue=1 ; remove me\n'
+    }
+  ]);
+
+  const rendered = renderMergedContent(model, { cleanupMode: 'minimal' });
+  assert.match(rendered, /Value=1/);
+  assert.doesNotMatch(rendered, /remove me/);
+});
+
+test('minimal cleanup removes loose prose and divider lines that are not real ini assignments', () => {
+  const model = createMergeModel([
+    {
+      id: 'a',
+      name: 'base.ini',
+      path: 'C:\\base.ini',
+      content: '----------------\nCredits\nPatreon: https://example.com\n[ConsoleVariables]\nr.Test=1\nLoose Heading\nr.Other=2\n'
+    }
+  ]);
+
+  const rendered = renderMergedContent(model, { cleanupMode: 'minimal' });
+  assert.doesNotMatch(rendered, /Credits/);
+  assert.doesNotMatch(rendered, /Patreon/);
+  assert.doesNotMatch(rendered, /Loose Heading/);
+  assert.match(rendered, /\[ConsoleVariables\]/);
+  assert.match(rendered, /r\.Test=1/);
+  assert.match(rendered, /r\.Other=2/);
+});

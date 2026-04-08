@@ -30,6 +30,29 @@
     return key.trim().toLowerCase();
   }
 
+  function normalizeSectionName(sectionName) {
+    return String(sectionName ?? '').trim().toLowerCase();
+  }
+
+  function normalizeCreateMergeOptions(options) {
+    const excludedSections = new Set(
+      Array.from(options?.excludedSections || []).map((sectionName) => normalizeSectionName(sectionName))
+    );
+
+    return {
+      excludedSections,
+      defaultConflictStrategy: options?.defaultConflictStrategy === 'lowest' ? 'lowest' : 'highest',
+      defaultDuplicateStrategy: options?.defaultDuplicateStrategy === 'keep' ? 'keep' : 'remove'
+    };
+  }
+
+  function normalizeRenderOptions(options) {
+    const cleanupMode = ['smart', 'minimal'].includes(options?.cleanupMode) ? options.cleanupMode : 'preserve';
+    return {
+      cleanupMode
+    };
+  }
+
   function classifySetting(operator, normalizedKey) {
     if (operator === '.') {
       return { kind: 'repeatable', dedupeMode: 'keep' };
@@ -239,7 +262,16 @@
     });
   }
 
-  function createMergeModel(files) {
+  function getDefaultConflictOptionId(options, strategy) {
+    if (options.length === 0) {
+      return null;
+    }
+
+    return strategy === 'lowest' ? options[options.length - 1].id : options[0].id;
+  }
+
+  function createMergeModel(files, options = {}) {
+    const buildOptions = normalizeCreateMergeOptions(options);
     const parsedDocuments = files.map((file) => parseIni(file.content, file));
     const sectionsByName = new Map();
     const conflicts = [];
@@ -268,6 +300,10 @@
 
     parsedDocuments.forEach((document, fileIndex) => {
       document.sections.forEach((section) => {
+        if (buildOptions.excludedSections.has(normalizeSectionName(section.name))) {
+          return;
+        }
+
         let aggregate = sectionsByName.get(section.name);
 
         if (!aggregate) {
@@ -350,7 +386,8 @@
               label: item.label,
               raw: item.entry.raw,
               optionId: item.entry.id,
-              keepDuplicates: false,
+              defaultKeepDuplicates: buildOptions.defaultDuplicateStrategy === 'keep',
+              keepDuplicates: buildOptions.defaultDuplicateStrategy === 'keep',
               occurrences: item.entry.occurrences.slice()
             });
           }
@@ -359,7 +396,7 @@
         }
 
         const sortedOptions = sortConflictOptions(item.options);
-        const selectedOptionId = sortedOptions[0] ? sortedOptions[0].id : null;
+        const selectedOptionId = getDefaultConflictOptionId(sortedOptions, buildOptions.defaultConflictStrategy);
         model.summary.scalarCount += 1;
 
         sortedOptions.forEach((option) => {
@@ -371,7 +408,8 @@
               label: item.label,
               raw: option.raw,
               optionId: option.id,
-              keepDuplicates: false,
+              defaultKeepDuplicates: buildOptions.defaultDuplicateStrategy === 'keep',
+              keepDuplicates: buildOptions.defaultDuplicateStrategy === 'keep',
               occurrences: option.occurrences.slice()
             });
           }
@@ -384,6 +422,7 @@
             sectionName: section.name,
             label: item.label,
             options: sortedOptions,
+            defaultOptionId: selectedOptionId,
             selectedOptionId
           });
           item.conflictId = conflictId;
@@ -488,7 +527,69 @@
     return lines.slice(start, end);
   }
 
-  function renderMergedContent(model) {
+  function stripInlineComment(line) {
+    const parsed = parseSettingLine(line);
+
+    if (!parsed) {
+      return line;
+    }
+
+    const match = line.match(/^(\s*[+\-\.!]?[^=]+=\s*.*?)(\s+[;#].*)$/);
+    return match ? match[1].trimEnd() : line;
+  }
+
+  function hasExplicitAssignment(line) {
+    return /^\s*[+\-\.!]?[^=]+?=\s*.*$/.test(line);
+  }
+
+  function getNextMeaningfulLine(lines, startIndex) {
+    for (let index = startIndex; index < lines.length; index += 1) {
+      if (lines[index].trim() !== '') {
+        return lines[index];
+      }
+    }
+
+    return '';
+  }
+
+  function cleanupRenderedLines(lines, cleanupMode) {
+    if (cleanupMode === 'preserve') {
+      return trimEdgeBlankLines(lines);
+    }
+
+    const stripStandaloneComments = cleanupMode === 'smart' || cleanupMode === 'minimal';
+    const stripInlineComments = cleanupMode === 'minimal';
+    const cleaned = [];
+
+    lines.forEach((line, index) => {
+      if (stripStandaloneComments && isCommentLine(line)) {
+        return;
+      }
+
+      if (cleanupMode === 'minimal' && line.trim() !== '' && !isSectionLine(line) && !hasExplicitAssignment(line)) {
+        return;
+      }
+
+      const nextLine = stripInlineComments ? stripInlineComment(line) : line;
+      const trimmed = nextLine.trim();
+
+      if (trimmed === '') {
+        const previousLine = cleaned.length > 0 ? cleaned[cleaned.length - 1] : '';
+        const upcomingLine = getNextMeaningfulLine(lines, index + 1);
+
+        if (previousLine === '' || isSectionLine(previousLine) || isSectionLine(upcomingLine)) {
+          return;
+        }
+      }
+
+      cleaned.push(nextLine);
+    });
+
+    return trimEdgeBlankLines(cleaned);
+  }
+
+  function renderMergedContent(model, options = {}) {
+    const renderOptions = normalizeRenderOptions(options);
     const lines = [];
     const conflictsById = new Map(model.conflicts.map((conflict) => [conflict.id, conflict]));
     const duplicatesByOptionId = new Map(model.duplicates.map((duplicate) => [duplicate.optionId, duplicate]));
@@ -546,7 +647,7 @@
       }
     });
 
-    return trimEdgeBlankLines(lines).join('\r\n');
+    return cleanupRenderedLines(lines, renderOptions.cleanupMode).join('\r\n');
   }
 
   return {
